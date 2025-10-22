@@ -2,8 +2,8 @@
 
 package uq.comp3506.a2.structures;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Supplied by the COMP3506/7505 teaching team, Semester 2, 2025.
@@ -28,7 +28,7 @@ public class Heap<K extends Comparable<K>, V> {
      */
     public Heap() {
         this.data = new ArrayList<>();
-        // Implement me!
+        this.size = 0;
     }
 
     /**
@@ -66,30 +66,63 @@ public class Heap<K extends Comparable<K>, V> {
         return 2 * i + 2; 
     }
 
+    // compare helper method
+    private int compare(Entry<K, V> a, Entry<K, V> b) {
+        return a.getKey().compareTo(b.getKey());
+    }
+
+    // sawp helper method 
+    private void swap(int i, int j) {
+        Entry<K,V> tmp = data.get(i);
+        data.set(i, data.get(j));
+        data.set(j, tmp);
+    }
+
+
     /**
      * Swaps the node at index i upwards until the heap property is satisfied
      */
     private void upHeap(int i) {
-
+        while (i > 0) {
+            int p = parent(i);
+            if (compare(data.get(i), data.get(p)) >= 0) break; // compare return positive means child >= parent
+            swap(i, p);
+            i = p; // update the i to p to allow further checking
+        }
     }
 
     /**
      * Swaps the node at index i downwards until the heap property is satisfied
      */
     private void downHeap(int i) {
+        while (true) { 
+            int l = left(i);
+            int r = right(i);
+            int smallest = i;
 
+            if (l < size && compare(data.get(l), data.get(smallest)) < 0) {
+                smallest = l;
+            }
+            if (r < size && compare(data.get(r), data.get(smallest)) < 0) {
+                smallest = r;
+            }
+            if (smallest == i) break;
+
+            swap(i, smallest);
+            i = smallest;
+        }   
     }
 
     /** The number of elements in the heap*/
     public int size() {
         // Implement me!
-        return data.size();
+        return size;
     }
 
     /** True if there are no elements in the heap; false otherwise*/
     public boolean isEmpty() {
         // Implement me!
-        return data.size() == 0;
+        return size == 0;
     }
 
     /**
@@ -99,6 +132,7 @@ public class Heap<K extends Comparable<K>, V> {
      */
     public void insert(K key, V value) {
         // Implement me!
+        insert(new Entry<>(key, value));
     }
 
     /**
@@ -109,6 +143,7 @@ public class Heap<K extends Comparable<K>, V> {
     public void insert(Entry<K, V> entry) {
         // Implement me!
         data.add(entry);
+        size++;
         upHeap(data.size() - 1);
     }
 
@@ -120,7 +155,21 @@ public class Heap<K extends Comparable<K>, V> {
      * Note: Return null if empty.
      */
     public Entry<K, V> removeMin() {
-        return null; 
+        if (isEmpty()) return null;
+        
+        Entry<K,V> min = data.get(0);
+        swap(0, size -1);
+
+        // remove the last element  
+        data.remove(size - 1);
+        size--;
+        
+        // heapify down 
+        if (!isEmpty()) {
+            downHeap(0);
+        }
+
+        return min;
     }
 
     /**
@@ -132,7 +181,10 @@ public class Heap<K extends Comparable<K>, V> {
      * Note: Return null if empty
      */
     public Entry<K, V> peekMin() {
-        return null;
+        if (isEmpty()) {
+            return null; // Heap is empty
+        }
+        return data.get(0); // The minimum element is at the root
     }
 
     /**

@@ -1,6 +1,6 @@
-Submission counter: 0 << Keep track of your submission counts
+Submission counter: 1 << Keep track of your submission counts
 
-Student ID:
+Student ID: 47318045
 
 Statement
 ---------
