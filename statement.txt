@@ -1,4 +1,4 @@
-Submission counter: 2 << Keep track of your submission counts
+Submission counter: 3 << Keep track of your submission counts
 
 Student ID: 47318045
 
@@ -13,11 +13,12 @@ For this assignment, I used an AI language model (ChatGPT, GPT-5) only for clari
 
 * Request code structure examples to understand common implementations
 
-* I asked AI to explain concepts of hashing, collisions, buckets, map operations.
+* I asked AI to explain concepts of hashing, collisions, buckets, map operations, BSTS, AVL.
 
 * I asked AI for debugging.
 
 * I asked AI to produce example test code to help me manually verify my own implementation.
+
 
 
 

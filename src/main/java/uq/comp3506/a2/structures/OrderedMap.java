@@ -164,7 +164,8 @@ public class OrderedMap<K extends Comparable<K>, V> implements MapInterface<K, V
      */
     public V nextGeq(K key) {
         // Implement me!
-        return null;
+        Node<K, V> result = findNextGeq(root, key);
+        return result == null ? null : result.getValue();
     }
 
     /** Returns the value associated with the largest key less than or
@@ -172,7 +173,8 @@ public class OrderedMap<K extends Comparable<K>, V> implements MapInterface<K, V
      */
     public V nextLeq(K key) {
         // Implement me!
-        return null;
+        Node<K, V> result = findNextLeq(root, key);
+        return result == null ? null : result.getValue();
     }
 
 
@@ -180,6 +182,7 @@ public class OrderedMap<K extends Comparable<K>, V> implements MapInterface<K, V
     public List<K> keysInRange(K lo, K hi) {
         ArrayList<K> result = new ArrayList<>();
         // Implement me!
+        collectKeysInRange(root, lo, hi, result);
         return result;
     }
 
@@ -244,7 +247,18 @@ public class OrderedMap<K extends Comparable<K>, V> implements MapInterface<K, V
         // uh oh... implement me!
         // you can do it without AI, I believe in you
         // make Barry proud
-        return x; // This will NOT work
+        Node<K, V> y = x.getRight();
+        Node<K, V> heavySubtree = y.getLeft(); // T2 above
+
+        // Perform rotation
+        y.setLeft(x);
+        x.setRight(heavySubtree);
+
+        // Update heights (x first, then y since x is now child of y)
+        updateHeight(x);
+        updateHeight(y);
+
+        return y; // Return new root of this subtree
     }
 
     /** Does the heavy lifting of the balancing */
@@ -360,6 +374,79 @@ public class OrderedMap<K extends Comparable<K>, V> implements MapInterface<K, V
     }
 
     // you probably need more helpers here
+    /** Helper method to find the node with smallest key ≥ given key */
+    private Node<K, V> findNextGeq(Node<K, V> node, K key) {
+        if (node == null) {
+            return null;
+        }
+
+        int cmp = key.compareTo(node.getKey());
+
+        if (cmp == 0) {
+            // Exact match found
+            return node;
+        } else if (cmp < 0) {
+            // Current node's key is greater than target
+            // Check if there's a smaller node in left subtree that still satisfies ≥ condition
+            Node<K, V> leftResult = findNextGeq(node.getLeft(), key);
+            // Return the current node if no better candidate found in left subtree
+            return leftResult != null ? leftResult : node;
+        } else {
+            // Current node's key is smaller than target
+            // Search in right subtree for a larger key
+            return findNextGeq(node.getRight(), key);
+        }
+    }
+
+    /** Helper method to find the node with largest key ≤ given key */
+    private Node<K, V> findNextLeq(Node<K, V> node, K key) {
+        if (node == null) {
+            return null;
+        }
+
+        int cmp = key.compareTo(node.getKey());
+
+        if (cmp == 0) {
+            // Exact match found
+            return node;
+        } else if (cmp < 0) {
+            // Current node's key is greater than target
+            // Search in left subtree for a smaller key
+            return findNextLeq(node.getLeft(), key);
+        } else {
+            // Current node's key is smaller than target
+            // Check if there's a larger node in right subtree that still satisfies ≤ condition
+            Node<K, V> rightResult = findNextLeq(node.getRight(), key);
+            // Return the current node if no better candidate found in right subtree
+            return rightResult != null ? rightResult : node;
+        }
+    }
+
+    /** Helper method to recursively collect keys in the range [lo, hi] */
+    private void collectKeysInRange(Node<K, V> node, K lo, K hi, List<K> result) {
+        if (node == null) {
+            return;
+        }
+
+        int cmpLo = lo.compareTo(node.getKey());
+        int cmpHi = hi.compareTo(node.getKey());
+
+        // If current node's key is greater than lo, search left subtree
+        if (cmpLo < 0) {
+            collectKeysInRange(node.getLeft(), lo, hi, result);
+        }
+
+        // If current node's key is within range [lo, hi], add it to result
+        if (cmpLo <= 0 && cmpHi >= 0) {
+            result.add(node.getKey());
+        }
+
+        // If current node's key is less than hi, search right subtree
+        if (cmpHi > 0) {
+            collectKeysInRange(node.getRight(), lo, hi, result);
+        }
+    }
+
 
 
 }
