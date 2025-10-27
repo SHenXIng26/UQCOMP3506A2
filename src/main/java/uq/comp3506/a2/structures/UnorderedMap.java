@@ -38,6 +38,17 @@ public class UnorderedMap<K, V> implements MapInterface<K, V> {
         this(DEFAULT_CAPACITY);
     }
 
+    /**
+     * Constructs an {@code UnorderedMap} with a specified initial capacity.
+     * <p>
+     * The capacity determines the initial number of buckets used for hashing.
+     * Each bucket is initialized as an empty {@link LinkedList} to store
+     * key-value entries that map to the same hash index.
+     *
+     * @param initialCapacity the initial number of buckets to allocate;
+     *                        must be a positive integer
+     * @throws IllegalArgumentException if {@code initialCapacity} is less than or equal to zero
+     */
     // initialCapacity must be > 0
     public UnorderedMap(int initialCapacity) {
         if (initialCapacity <= 0) {
@@ -58,7 +69,9 @@ public class UnorderedMap<K, V> implements MapInterface<K, V> {
      * Hashing function to compute bucket index for a key
      */
     private int index(K key) {
-        if (key == null) return 0;
+        if (key == null) {
+            return 0;
+        }
         // And operation to ensure positive and mod to ensure the index
         return (key.hashCode() & 0x7fffffff) % capacity;
     }
@@ -91,8 +104,12 @@ public class UnorderedMap<K, V> implements MapInterface<K, V> {
      * Helper method to compare keys, handling null keys properly
      */
     private boolean keysEqual(K key1, K key2) {
-        if (key1 == null && key2 == null) return true;
-        if (key1 == null || key2 == null) return false;
+        if (key1 == null && key2 == null) {
+            return true;
+        }
+        if (key1 == null || key2 == null) {
+            return false;
+        }
         return key1.equals(key2);
     }
 
@@ -123,7 +140,9 @@ public class UnorderedMap<K, V> implements MapInterface<K, V> {
     @Override
     public void clear() {
         // Implement me!
-        for (int i = 0; i < capacity; i++) buckets.get(i).clear();
+        for (int i = 0; i < capacity; i++) {
+            buckets.get(i).clear();
+        }
         size = 0;
     }
 
@@ -140,7 +159,7 @@ public class UnorderedMap<K, V> implements MapInterface<K, V> {
     public V put(K key, V value) {
         // Implement me!
 
-        if ((double)size / capacity >= MAX_LOAD_FACTOR) {
+        if ((double) size / capacity >= MAX_LOAD_FACTOR) {
             resize();
         }
 
@@ -208,7 +227,7 @@ public class UnorderedMap<K, V> implements MapInterface<K, V> {
                 return oldValue;
             }
         }
-        return null;// Key not found
+        return null; // Key not found
     } 
 
 }

@@ -69,10 +69,11 @@ public class Problems {
 
         for (int i = 0; i < sortedPosition.size() - 1; i++) {
             double gap = sortedPosition.get(i + 1) - sortedPosition.get(i);
-            minRadius = Math.max(minRadius, gap/2.0);
+            minRadius = Math.max(minRadius, gap / 2.0);
         }
 
-        minRadius = Math.max(minRadius, tunnelLength - sortedPosition.get(sortedPosition.size() - 1));
+        minRadius = Math.max(minRadius,
+                tunnelLength - sortedPosition.get(sortedPosition.size() - 1));
 
         return minRadius;
 
@@ -89,102 +90,117 @@ public class Problems {
      * vertices.
      */
     public static <S, U> TopologyType topologyDetection(List<Edge<S, U>> edgeList) {
-        // Build adjacency list and track all vertices
-        UnorderedMap<Vertex<S>, List<Vertex<S>>> adjList = new UnorderedMap<>();
-        List<Vertex<S>> allVertices = new ArrayList<>();
-        UnorderedMap<Integer, Boolean> vertexSeen = new UnorderedMap<>(); // tack by ID
-
-        for (Edge<S, U> edge : edgeList) {
-            Vertex<S> v1 = edge.getVertex1();
-            Vertex<S> v2 = edge.getVertex2();
-
-            // Track unique vertices by ID
-            if (vertexSeen.get(v1.getId()) == null) {
-                vertexSeen.put(v1.getId(), true);
-                allVertices.add(v1);
-            }
-
-            // Track unique vertices by ID
-            if (vertexSeen.get(v2.getId()) == null) {
-                vertexSeen.put(v2.getId(), true);
-                allVertices.add(v2);
-            }
-
-            // Build adjacency list
-            addToAdjList(adjList, v1, v2);
-            addToAdjList(adjList, v2, v1);
-        }
-
-        if (allVertices.isEmpty()) {
+        if (edgeList == null || edgeList.isEmpty()) {
             return TopologyType.UNKNOWN;
         }
 
-        UnorderedMap<Vertex<S>, Boolean> visited = new UnorderedMap<>();
-        int componentCount = 0;
-        boolean hasTreeComponent = false;
-        boolean hasGraphComponent = false;
+        // Step 1: Map each Vertex to a compact 0..n-1 id in O(1) expected time
+        UnorderedMap<Integer, Integer> vertexToCompactId = new UnorderedMap<>();
+        List<Integer> originalIds = new ArrayList<>();
+        int nextId = 0;
 
-        for (Vertex<S> vertex : allVertices) {
-            if (visited.get(vertex) == null) {
-                componentCount++;
-                boolean hasCycle = hasCycleDFS(vertex, adjList, visited, null);
+        // First pass: collect all unique vertex IDs and assign compact IDs
+        for (Edge<S, U> edge : edgeList) {
+            int id1 = edge.getVertex1().getId();
+            int id2 = edge.getVertex2().getId();
+
+            if (vertexToCompactId.get(id1) == null) {
+                vertexToCompactId.put(id1, nextId++);
+                originalIds.add(id1);
+            }
+            if (vertexToCompactId.get(id2) == null) {
+                vertexToCompactId.put(id2, nextId++);
+                originalIds.add(id2);
+            }
+        }
+
+        int n = nextId; // Total number of vertices
+
+        // Step 2: Build UNDIRECTED adjacency using compact IDs
+        List<Integer>[] adj = new ArrayList[n];
+        for (int i = 0; i < n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+
+        for (Edge<S, U> edge : edgeList) {
+            int compactId1 = vertexToCompactId.get(edge.getVertex1().getId());
+            int compactId2 = vertexToCompactId.get(edge.getVertex2().getId());
+
+            adj[compactId1].add(compactId2);
+            adj[compactId2].add(compactId1);
+        }
+
+        // Step 3: Iterate components with an int[] stack (no Deque)
+        boolean[] visited = new boolean[n];
+        int treeComponents = 0;
+        int graphComponents = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (!visited[i]) {
+                // Explore component using array-based stack
+                boolean hasCycle = exploreComponentWithStack(i, adj, visited);
 
                 if (hasCycle) {
-                    hasGraphComponent = true;
+                    graphComponents++;
                 } else {
-                    hasTreeComponent = true;
+                    treeComponents++;
                 }
             }
         }
 
-        // Classification
-        if (componentCount == 1) {
-            return hasTreeComponent ? TopologyType.CONNECTED_TREE : TopologyType.CONNECTED_GRAPH;
+        int totalComponents = treeComponents + graphComponents;
+
+        // Step 4: Map to your enum
+        if (totalComponents == 1) {
+            return (treeComponents == 1) ? TopologyType.CONNECTED_TREE :
+                    TopologyType.CONNECTED_GRAPH;
         } else {
-            if (hasTreeComponent && hasGraphComponent) {
-                return TopologyType.HYBRID;
-            } else if (hasTreeComponent) {
+            if (treeComponents == totalComponents) {
                 return TopologyType.FOREST;
-            } else {
+            } else if (graphComponents == totalComponents) {
                 return TopologyType.DISCONNECTED_GRAPH;
+            } else {
+                return TopologyType.HYBRID;
             }
         }
     }
 
-    // topologyDetection Helper Method below
+    private static boolean exploreComponentWithStack(int start, List<Integer>[] adj,
+                                                     boolean[] visited) {
+        int n = adj.length;
+        int[] stack = new int[n]; // Array-based stack
+        int[] parent = new int[n]; // Track parent for cycle detection
+        int stackSize = 0;
+        boolean hasCycle = false;
 
-    /** Helper to add to adjacency list */
-    private static <S> void addToAdjList(UnorderedMap<Vertex<S>, List<Vertex<S>>> adjList,
-                                         Vertex<S> vertex, Vertex<S> neighbor) {
-        List<Vertex<S>> neighbors = adjList.get(vertex);
-        if (neighbors == null) {
-            neighbors = new ArrayList<>();
-            adjList.put(vertex, neighbors);
+        // Initialize
+        for (int i = 0; i < n; i++) {
+            parent[i] = -1;
         }
-        neighbors.add(neighbor);
-    }
 
-    /** DFS cycle detection */
-    private static <S> boolean hasCycleDFS(Vertex<S> current,
-                                           UnorderedMap<Vertex<S>, List<Vertex<S>>> adjList,
-                                           UnorderedMap<Vertex<S>, Boolean> visited,
-                                           Vertex<S> parent) {
-        visited.put(current, true);
+        stack[stackSize++] = start;
+        visited[start] = true;
+        parent[start] = -1; // Root has no parent
 
-        List<Vertex<S>> neighbors = adjList.get(current);
-        if (neighbors == null) return false;
+        while (stackSize > 0) {
+            int current = stack[--stackSize]; // pop
 
-        for (Vertex<S> neighbor : neighbors) {
-            if (visited.get(neighbor) == null) {
-                if (hasCycleDFS(neighbor, adjList, visited, current)) {
-                    return true;
+            for (int neighbor : adj[current]) {
+                if (!visited[neighbor]) {
+                    // Push to stack
+                    visited[neighbor] = true;
+                    parent[neighbor] = current;
+                    stack[stackSize++] = neighbor;
+                } else if (neighbor != parent[current]) {
+                    // Found a back edge - cycle detected!
+                    hasCycle = true;
                 }
-            } else if (!neighbor.equals(parent)) {
-                return true;
             }
         }
-        return false;
+
+        return hasCycle;
     }
+
 
     /**
      * Compute the list of reachable destinations and their minimum costs.
@@ -308,8 +324,8 @@ public class Problems {
     }
 
     /** Helper to add edge to adjacency list */
-    private static void addEdgeToAdjList(UnorderedMap<Integer, List<Entry<Integer, Integer>>> adjList,
-                                         int fromId, int toId, int weight) {
+    private static void addEdgeToAdjList(UnorderedMap<Integer,
+            List<Entry<Integer, Integer>>> adjList, int fromId, int toId, int weight) {
         List<Entry<Integer, Integer>> neighbors = adjList.get(fromId);
         if (neighbors == null) {
             neighbors = new ArrayList<>();
@@ -319,7 +335,8 @@ public class Problems {
     }
 
     /** Helper to get all vertex IDs from edge list */
-    private static <S, U> List<Entry<Integer, Integer>> getAllVerticesFromEdges(List<Edge<S, U>> edgeList) {
+    private static <S, U> List<Entry<Integer,
+            Integer>> getAllVerticesFromEdges(List<Edge<S, U>> edgeList) {
         UnorderedMap<Integer, Boolean> uniqueIds = new UnorderedMap<>();
         List<Entry<Integer, Integer>> allVertices = new ArrayList<>();
 
@@ -373,7 +390,9 @@ public class Problems {
             double r1 = tunnelI.getRadius();
 
             for (int j = 0; j < n; j++) {
-                if (i == j) continue; // skip self (already true)
+                if (i == j) {
+                    continue; // skip self (already true)
+                }
 
                 Tunnel tunnelJ = tunnels.get(j);
                 double x2 = tunnelJ.getX();
@@ -417,8 +436,8 @@ public class Problems {
             }
 
             // Update best tunnel
-            if (floodCount > maxFloodCount ||
-                    (floodCount == maxFloodCount && tunnels.get(i).getId() < bestTunnelId)) {
+            if (floodCount > maxFloodCount || (floodCount == maxFloodCount
+                    && tunnels.get(i).getId() < bestTunnelId)) {
                 maxFloodCount = floodCount;
                 bestTunnelId = tunnels.get(i).getId();
             }

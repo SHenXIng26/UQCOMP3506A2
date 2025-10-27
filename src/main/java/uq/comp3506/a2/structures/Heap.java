@@ -73,7 +73,7 @@ public class Heap<K extends Comparable<K>, V> {
 
     // sawp helper method 
     private void swap(int i, int j) {
-        Entry<K,V> tmp = data.get(i);
+        Entry<K, V> tmp = data.get(i);
         data.set(i, data.get(j));
         data.set(j, tmp);
     }
@@ -85,7 +85,10 @@ public class Heap<K extends Comparable<K>, V> {
     private void upHeap(int i) {
         while (i > 0) {
             int p = parent(i);
-            if (compare(data.get(i), data.get(p)) >= 0) break; // compare return positive means child >= parent
+            // compare return positive means child >= parent
+            if (compare(data.get(i), data.get(p)) >= 0) {
+                break;
+            }
             swap(i, p);
             i = p; // update the i to p to allow further checking
         }
@@ -106,7 +109,9 @@ public class Heap<K extends Comparable<K>, V> {
             if (r < size && compare(data.get(r), data.get(smallest)) < 0) {
                 smallest = r;
             }
-            if (smallest == i) break;
+            if (smallest == i) {
+                break;
+            }
 
             swap(i, smallest);
             i = smallest;
@@ -155,10 +160,11 @@ public class Heap<K extends Comparable<K>, V> {
      * Note: Return null if empty.
      */
     public Entry<K, V> removeMin() {
-        if (isEmpty()) return null;
-        
-        Entry<K,V> min = data.get(0);
-        swap(0, size -1);
+        if (isEmpty()) {
+            return null;
+        }
+        Entry<K, V> min = data.get(0);
+        swap(0, size - 1);
 
         // remove the last element  
         data.remove(size - 1);
