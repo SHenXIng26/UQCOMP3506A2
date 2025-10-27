@@ -351,7 +351,80 @@ public class Problems {
      * range [0, n-1] for n unique tunnels.
      */
     public static int totallyFlooded(List<Tunnel> tunnels) {
-        return -1;
+        if (tunnels == null || tunnels.isEmpty()) {
+            return -1;
+        }
+
+        int n = tunnels.size();
+
+        // Build adjacency matrix: which tunnels can flood which others
+        boolean[][] canFlood = new boolean[n][n];
+
+        // Initialize: every tunnel can flood itself
+        for (int i = 0; i < n; i++) {
+            canFlood[i][i] = true;
+        }
+
+        // Check all pairs of tunnels for flood relationships
+        for (int i = 0; i < n; i++) {
+            Tunnel tunnelI = tunnels.get(i);
+            double x1 = tunnelI.getX();
+            double y1 = tunnelI.getY();
+            double r1 = tunnelI.getRadius();
+
+            for (int j = 0; j < n; j++) {
+                if (i == j) continue; // skip self (already true)
+
+                Tunnel tunnelJ = tunnels.get(j);
+                double x2 = tunnelJ.getX();
+                double y2 = tunnelJ.getY();
+
+                // Calculate squared distance between tunnels
+                double dx = x2 - x1;
+                double dy = y2 - y1;
+                double distanceSquared = dx * dx + dy * dy;
+
+                // Check if tunnel I can flood tunnel J
+                // tunnel I floods tunnel J if distance <= (r1 - epsilon)
+                if (r1 > 0 && distanceSquared <= r1 * r1) {
+                    canFlood[i][j] = true;
+                }
+            }
+        }
+
+        // Compute transitive closure using Floyd-Warshall
+        // If A->B and B->C, then A->C
+        for (int k = 0; k < n; k++) {
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < n; j++) {
+                    if (canFlood[i][k] && canFlood[k][j]) {
+                        canFlood[i][j] = true;
+                    }
+                }
+            }
+        }
+
+        // Find tunnel with maximum reachable count
+        int maxFloodCount = -1;
+        int bestTunnelId = -1;
+
+        for (int i = 0; i < n; i++) {
+            int floodCount = 0;
+            for (int j = 0; j < n; j++) {
+                if (canFlood[i][j]) {
+                    floodCount++;
+                }
+            }
+
+            // Update best tunnel
+            if (floodCount > maxFloodCount ||
+                    (floodCount == maxFloodCount && tunnels.get(i).getId() < bestTunnelId)) {
+                maxFloodCount = floodCount;
+                bestTunnelId = tunnels.get(i).getId();
+            }
+        }
+
+        return bestTunnelId;
     }
 
     /**
