@@ -9,6 +9,7 @@ import uq.comp3506.a2.structures.Entry;
 import uq.comp3506.a2.structures.TopologyType;
 import uq.comp3506.a2.structures.Tunnel;
 import uq.comp3506.a2.structures.OrderedMap;
+import uq.comp3506.a2.structures.UnorderedMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -87,10 +88,103 @@ public class Problems {
      * vertices.
      */
     public static <S, U> TopologyType topologyDetection(List<Edge<S, U>> edgeList) {
-        TopologyType dummy = TopologyType.UNKNOWN;
-        return dummy;
+        // Build adjacency list and track all vertices
+        UnorderedMap<Vertex<S>, List<Vertex<S>>> adjList = new UnorderedMap<>();
+        List<Vertex<S>> allVertices = new ArrayList<>();
+        UnorderedMap<Integer, Boolean> vertexSeen = new UnorderedMap<>(); // tack by ID
+
+        for (Edge<S, U> edge : edgeList) {
+            Vertex<S> v1 = edge.getVertex1();
+            Vertex<S> v2 = edge.getVertex2();
+
+            // Track unique vertices by ID
+            if (vertexSeen.get(v1.getId()) == null) {
+                vertexSeen.put(v1.getId(), true);
+                allVertices.add(v1);
+            }
+
+            // Track unique vertices by ID
+            if (vertexSeen.get(v2.getId()) == null) {
+                vertexSeen.put(v2.getId(), true);
+                allVertices.add(v2);
+            }
+
+            // Build adjacency list
+            addToAdjList(adjList, v1, v2);
+            addToAdjList(adjList, v2, v1);
+        }
+
+        if (allVertices.isEmpty()) {
+            return TopologyType.UNKNOWN;
+        }
+
+        UnorderedMap<Vertex<S>, Boolean> visited = new UnorderedMap<>();
+        int componentCount = 0;
+        boolean hasTreeComponent = false;
+        boolean hasGraphComponent = false;
+
+        for (Vertex<S> vertex : allVertices) {
+            if (visited.get(vertex) == null) {
+                componentCount++;
+                boolean hasCycle = hasCycleDFS(vertex, adjList, visited, null);
+
+                if (hasCycle) {
+                    hasGraphComponent = true;
+                } else {
+                    hasTreeComponent = true;
+                }
+            }
+        }
+
+        // Classification
+        if (componentCount == 1) {
+            return hasTreeComponent ? TopologyType.CONNECTED_TREE : TopologyType.CONNECTED_GRAPH;
+        } else {
+            if (hasTreeComponent && hasGraphComponent) {
+                return TopologyType.HYBRID;
+            } else if (hasTreeComponent) {
+                return TopologyType.FOREST;
+            } else {
+                return TopologyType.DISCONNECTED_GRAPH;
+            }
+        }
     }
- 
+
+    // topologyDetection Helper Method below
+
+    /** Helper to add to adjacency list */
+    private static <S> void addToAdjList(UnorderedMap<Vertex<S>, List<Vertex<S>>> adjList,
+                                         Vertex<S> vertex, Vertex<S> neighbor) {
+        List<Vertex<S>> neighbors = adjList.get(vertex);
+        if (neighbors == null) {
+            neighbors = new ArrayList<>();
+            adjList.put(vertex, neighbors);
+        }
+        neighbors.add(neighbor);
+    }
+
+    /** DFS cycle detection */
+    private static <S> boolean hasCycleDFS(Vertex<S> current,
+                                           UnorderedMap<Vertex<S>, List<Vertex<S>>> adjList,
+                                           UnorderedMap<Vertex<S>, Boolean> visited,
+                                           Vertex<S> parent) {
+        visited.put(current, true);
+
+        List<Vertex<S>> neighbors = adjList.get(current);
+        if (neighbors == null) return false;
+
+        for (Vertex<S> neighbor : neighbors) {
+            if (visited.get(neighbor) == null) {
+                if (hasCycleDFS(neighbor, adjList, visited, current)) {
+                    return true;
+                }
+            } else if (!neighbor.equals(parent)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Compute the list of reachable destinations and their minimum costs.
      * @param edgeList The list of edges making up the graph G; each is of type
@@ -106,7 +200,7 @@ public class Problems {
      * Note: You should return the origin in your result with a cost of zero.
      */
     public static <S, U> List<Entry<Integer, Integer>> routeManagement(List<Edge<S, U>> edgeList,
-                                                          Vertex<S> origin, int threshold) {
+                                                                       Vertex<S> origin, int threshold) {
         ArrayList<Entry<Integer, Integer>> answers = new ArrayList<>();
         return answers;
     }
@@ -139,7 +233,7 @@ public class Problems {
      * @return The number of sites which cannot be infiltrated.
      */
     public static int susDomination(List<Integer> sites, List<List<List<Integer>>> rules,
-                                     List<Integer> startingSites) {
+                                    List<Integer> startingSites) {
         return -1;
     }
 }

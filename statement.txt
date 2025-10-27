@@ -1,6 +1,8 @@
-Submission counter: 5 << Keep track of your submission counts
+Submission counter: 9 << Keep track of your submission counts
 
 Student ID: 47318045
+
+process: Debugging TopologyType
 
 Statement
 ---------
@@ -13,7 +15,7 @@ For this assignment, I used an AI language model (ChatGPT, GPT-5) only for clari
 
 * Request code structure examples to understand common implementations
 
-* I asked AI to explain concepts of hashing, collisions, buckets, map operations, BSTS, AVL.
+* I asked AI to explain concepts of hashing, collisions, buckets, map operations, BSTS, AVL, Graph basics, BFS/DFS, Topological Order.
 
 * I asked AI for debugging.
 

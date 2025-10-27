@@ -29,6 +29,8 @@ public class Vertex<S> {
         return id;
     }
 
+
+
     /** sets the vertex id. Do not use this unless you know what you are doing,
      * the vertex identifier should be unique in a given graph.
      */
