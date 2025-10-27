@@ -10,6 +10,7 @@ import uq.comp3506.a2.structures.TopologyType;
 import uq.comp3506.a2.structures.Tunnel;
 import uq.comp3506.a2.structures.OrderedMap;
 import uq.comp3506.a2.structures.UnorderedMap;
+import uq.comp3506.a2.structures.Heap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -199,10 +200,143 @@ public class Problems {
      * Note: We promise that S will be of Integer type.
      * Note: You should return the origin in your result with a cost of zero.
      */
-    public static <S, U> List<Entry<Integer, Integer>> routeManagement(List<Edge<S, U>> edgeList,
-                                                                       Vertex<S> origin, int threshold) {
-        ArrayList<Entry<Integer, Integer>> answers = new ArrayList<>();
-        return answers;
+    public static <S, U> List<Entry<Integer, Integer>> routeManagement(
+            List<Edge<S, U>> edgeList, Vertex<S> origin, int threshold) {
+
+        ArrayList<Entry<Integer, Integer>> result = new ArrayList<>();
+
+        if (edgeList == null || edgeList.isEmpty() || origin == null) {
+            return result;
+        }
+
+        // Build adjacency list: vertex ID -> list of (neighbor ID, weight)
+        UnorderedMap<Integer, List<Entry<Integer, Integer>>> adjList = new UnorderedMap<>();
+
+        for (Edge<S, U> edge : edgeList) {
+            int id1 = edge.getVertex1().getId();
+            int id2 = edge.getVertex2().getId();
+
+            // Extract weight from edge data
+            Integer weight = (Integer) edge.getData();
+
+            // Add edge from id1 to id2
+            addEdgeToAdjList(adjList, id1, id2, weight);
+            // Add edge from id2 to id1
+            addEdgeToAdjList(adjList, id2, id1, weight);
+        }
+
+        // Dijkstra's algorithm
+        UnorderedMap<Integer, Integer> distances = new UnorderedMap<>();
+        UnorderedMap<Integer, Boolean> visited = new UnorderedMap<>();
+
+        // Priority queue: (distance, vertex ID)
+        Heap<Integer, Integer> pq = new Heap<>();
+
+        // Initialize
+        int originId = origin.getId();
+        distances.put(originId, 0);
+        pq.insert(0, originId);
+
+        while (!pq.isEmpty()) {
+            // Get vertex with smallest distance
+            Entry<Integer, Integer> current = pq.removeMin();
+            int currentDist = current.getKey();
+            int currentId = current.getValue();
+
+            // Skip if we've already processed this vertex with a smaller distance
+            if (visited.get(currentId) != null) {
+                continue;
+            }
+
+            // Mark as visited
+            visited.put(currentId, true);
+
+            // If current distance exceeds threshold, we can stop (all remaining will be worse)
+            if (currentDist > threshold) {
+                continue;
+            }
+
+            // Explore neighbors
+            List<Entry<Integer, Integer>> neighbors = adjList.get(currentId);
+            if (neighbors != null) {
+                for (Entry<Integer, Integer> neighbor : neighbors) {
+                    int neighborId = neighbor.getKey();
+                    int edgeWeight = neighbor.getValue();
+                    int newDist = currentDist + edgeWeight;
+
+                    // Only consider if within threshold
+                    if (newDist <= threshold) {
+                        Integer oldDist = distances.get(neighborId);
+
+                        // If we found a shorter path or haven't visited yet
+                        if (oldDist == null || newDist < oldDist) {
+                            distances.put(neighborId, newDist);
+                            pq.insert(newDist, neighborId);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Collect results: all vertices with distance ≤ threshold
+        // Since we can't iterate over UnorderedMap keys easily, we'll use a different approach
+        for (Entry<Integer, Integer> entry : getAllVerticesFromEdges(edgeList)) {
+            int vertexId = entry.getKey();
+            Integer dist = distances.get(vertexId);
+
+            // Include origin (distance 0) and all reachable vertices within threshold
+            if (dist != null && dist <= threshold) {
+                result.add(new Entry<>(vertexId, dist));
+            }
+        }
+
+        // Add origin if not already included (should be included with distance 0)
+        if (distances.get(originId) != null && distances.get(originId) <= threshold) {
+            boolean originExists = false;
+            for (Entry<Integer, Integer> entry : result) {
+                if (entry.getKey().equals(originId)) {
+                    originExists = true;
+                    break;
+                }
+            }
+            if (!originExists) {
+                result.add(new Entry<>(originId, 0));
+            }
+        }
+
+        return result;
+    }
+
+    /** Helper to add edge to adjacency list */
+    private static void addEdgeToAdjList(UnorderedMap<Integer, List<Entry<Integer, Integer>>> adjList,
+                                         int fromId, int toId, int weight) {
+        List<Entry<Integer, Integer>> neighbors = adjList.get(fromId);
+        if (neighbors == null) {
+            neighbors = new ArrayList<>();
+            adjList.put(fromId, neighbors);
+        }
+        neighbors.add(new Entry<>(toId, weight));
+    }
+
+    /** Helper to get all vertex IDs from edge list */
+    private static <S, U> List<Entry<Integer, Integer>> getAllVerticesFromEdges(List<Edge<S, U>> edgeList) {
+        UnorderedMap<Integer, Boolean> uniqueIds = new UnorderedMap<>();
+        List<Entry<Integer, Integer>> allVertices = new ArrayList<>();
+
+        for (Edge<S, U> edge : edgeList) {
+            int id1 = edge.getVertex1().getId();
+            int id2 = edge.getVertex2().getId();
+
+            if (uniqueIds.get(id1) == null) {
+                uniqueIds.put(id1, true);
+                allVertices.add(new Entry<>(id1, 0)); // value doesn't matter
+            }
+            if (uniqueIds.get(id2) == null) {
+                uniqueIds.put(id2, true);
+                allVertices.add(new Entry<>(id2, 0));
+            }
+        }
+        return allVertices;
     }
 
     /**
