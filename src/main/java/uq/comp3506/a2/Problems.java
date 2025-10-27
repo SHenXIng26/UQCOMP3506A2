@@ -8,6 +8,7 @@ import uq.comp3506.a2.structures.Vertex;
 import uq.comp3506.a2.structures.Entry;
 import uq.comp3506.a2.structures.TopologyType;
 import uq.comp3506.a2.structures.Tunnel;
+import uq.comp3506.a2.structures.OrderedMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,7 +37,44 @@ public class Problems {
      * Note: We promise that the input List will be an ArrayList.
      */
     public static double tunnelLighting(int tunnelLength, List<Integer> lightIntervals) {
-        return -1;
+        // check if not lights provided
+        if (lightIntervals == null || lightIntervals.isEmpty()) {
+            return -1;
+        }
+
+        // using the ordered map to sort the light position
+        OrderedMap<Integer, Integer> sortedLights = new OrderedMap<>();
+        // add all the light positions to the avl tree. only key is matter, not the value
+        for (int position : lightIntervals) {
+            sortedLights.put(position, 1); // value can be anything
+        }
+
+        // extract the sorted position using keysInRange
+        List<Integer> sortedPosition = sortedLights.keysInRange(0, tunnelLength);
+
+        // error return if the sorting does not work
+        if (sortedPosition == null || sortedPosition.isEmpty()) {
+            return -1;
+        }
+
+        // below is the calculation for the radius
+        double minRadius = 0;
+
+        // radius = max(p0, max(gaps/2), tunnelLength - pLast)
+        // gaps = difference between adjacent light
+
+        minRadius = Math.max(minRadius, sortedPosition.get(0));
+
+        for (int i = 0; i < sortedPosition.size() - 1; i++) {
+            double gap = sortedPosition.get(i + 1) - sortedPosition.get(i);
+            minRadius = Math.max(minRadius, gap/2.0);
+        }
+
+        minRadius = Math.max(minRadius, tunnelLength - sortedPosition.get(sortedPosition.size() - 1));
+
+        return minRadius;
+
+
     }
 
     /**
